@@ -78,7 +78,7 @@ async def init(bot, ev):
         await bot.send(ev, "预约表重置失败")
 
 
-@sv.scheduled_job('interval', minutes=2)
+@sv.scheduled_job('interval', minutes=1)
 async def bossupdater():
     now_date = datetime.datetime.now(
         pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d')
