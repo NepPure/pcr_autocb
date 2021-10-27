@@ -414,7 +414,7 @@ async def yesterday_report(bot, ev):
         await bot.send(ev, report_str)
 
 
-@sv.on_rex(r'^[上挂]树\s*(\d*)$')
+# @sv.on_rex(r'^[上挂]树\s*(\d*)$')
 async def climb_tree(bot, ev):
     uid = ev.user_id
     if uid in on_tree:
@@ -455,8 +455,9 @@ async def climb_tree(bot, ev):
     sv.logger.info(f"{uid}上树")
     await bot.send(ev, reply, at_sender=True)
 
+# @sv.on_fullmatch('下树')
 
-@sv.on_fullmatch('下树')
+
 async def off_tree(bot, ev):
     uid = ev.user_id
     if uid not in on_tree:
@@ -477,8 +478,9 @@ async def send_tree_notification(gid, uid, time):
     )
     sv.logger.info(f"提醒{uid}下树")
 
+# @sv.on_fullmatch('查树')
 
-@sv.on_fullmatch('查树')
+
 async def check_tree(bot: HoshinoBot, ev):
     if len(on_tree) == 0:
         await bot.send(ev, "目前树上空空如也")
@@ -497,7 +499,7 @@ async def check_tree(bot: HoshinoBot, ev):
     await bot.send(ev, reply)
 
 
-@sv.on_fullmatch(('作业表', '作业'))
+# @sv.on_fullmatch(('作业表', '作业'))
 async def refs(bot, ev):
     msg = '''一阶段作业
 >>> http://t.cn/A653chPl
@@ -509,8 +511,9 @@ async def refs(bot, ev):
 >>> https://www.aikurumi.cn/'''
     await bot.send(ev, msg)
 
+# @sv.on_rex(r'手动记录(\d\d\d\d-\d\d-\d\d)')
 
-@sv.on_rex(r'手动记录(\d\d\d\d-\d\d-\d\d)')
+
 async def manual_record(bot, ev):
     match = ev['match']
     date = match.group(1)
@@ -532,7 +535,7 @@ async def manual_record(bot, ev):
             raise
 
 
-@sv.on_prefix('注册')
+# @sv.on_prefix('注册')
 async def register(bot, ev):
     uid = None
     name = None
@@ -564,8 +567,9 @@ async def register(bot, ev):
     else:
         await bot.send(ev, '注册失败')
 
+# @sv.on_fullmatch('查看注册信息')
 
-@sv.on_fullmatch('查看注册信息')
+
 async def get_register_info(bot, ev):
     uid = None
     for m in ev['message']:
@@ -586,7 +590,7 @@ async def get_register_info(bot, ev):
         await bot.send(ev, f'[CQ:at,qq={uid}] 已注册为 {name}')
 
 
-@sv.on_prefix(('更新注册', '注册更新'))
+# @sv.on_prefix(('更新注册', '注册更新'))
 async def update_register(bot, ev):
     uid = None
     name = None
@@ -615,8 +619,9 @@ async def update_register(bot, ev):
     else:
         await bot.send(ev, '更新失败')
 
+# @sv.on_prefix('删除成员')
 
-@sv.on_prefix('删除成员')
+
 async def delete_member(bot, ev):
     if not priv.check_priv(ev, priv.SUPERUSER):
         await bot.send(ev, "权限不足")
@@ -648,7 +653,7 @@ async def delete_member(bot, ev):
         await bot.send(ev, f'删除{name}失败')
 
 
-@sv.on_rex(r'^找人\s?(\S+)$')
+# @sv.on_rex(r'^找人\s?(\S+)$')
 async def find_qq_by_name(bot, ev):
     match = ev['match']
     name = match.group(1)
