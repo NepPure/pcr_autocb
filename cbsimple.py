@@ -90,17 +90,46 @@ async def get_start_end_date():
         return (start_date, end_date)
 
 
-async def update_boss(boss, lap_num, send_msg=False):
+def get_boss_hash(data):
+    if not data:
+        return None
+    clan_info = data['clan_info']
+    boss_info = data['boss_info']
+    stage_num, stage_char = get_boss_stage(boss_info['lap_num'])
+    boss_name = boss_info['name']
+    boss_num = get_boss_number(boss_name)
+    boss_hp = boss_info['current_life']
+    boss_max_hp = boss_info['total_life']
+    return f'{stage_num}_{stage_char}_{boss_name}_{boss_hp}'
+
+
+async def update_boss(boss, lap_num, send_msg=False, data=None):
+    boss_hash = get_boss_hash(data)
+    if not boss_hash:
+        boss_hash = boss
+
     curr_boss = subDao.curr_boss()
-    if boss != curr_boss:
+    if boss_hash != curr_boss:
         sv.logger.info('boss变更')
         bot = nonebot.get_bot()
-        subDao.update_boss(boss)
+        subDao.update_boss(boss_hash)
         if send_msg:
             stage = get_boss_stage(lap_num)
             msg = f'{curr_boss}王已被击败\n' if curr_boss else 'BOSS状态更新\n'
             msg += f'当前进度：{stage[1]}面{stage[0]}阶段 {lap_num}周目{boss}王'
-            await bot.send_group_msg(group_id=group_id, message=msg)
+            if data:
+                clan_info = data['clan_info']
+                boss_info = data['boss_info']
+                stage_num, stage_char = get_boss_stage(boss_info['lap_num'])
+                boss_num = get_boss_number(boss_info['name'])
+                boss_hp = boss_info['current_life']
+                boss_max_hp = boss_info['total_life']
+                msg = f'''{clan_info['name']} 排名{clan_info['last_ranking']}
+当前进度：
+{stage_char}面{stage_num}阶段 {boss_info['lap_num']}周目{boss_num}王 {boss_info['name']}
+HP: {number_formatter(boss_hp)}/{number_formatter(boss_max_hp)} {boss_hp/boss_max_hp:.1%}
+*查询结果存在延迟 请以游戏内为准'''
+        await bot.send_group_msg(group_id=group_id, message=msg)
 
         # 处理挂树
         if len(on_tree) > 0:
@@ -111,8 +140,8 @@ async def update_boss(boss, lap_num, send_msg=False):
                 sv.logger.info(f"{uid}因boss被击败下树")
             on_tree.clear()
             off_tree_msg += f'''
-***当前进度是<<<{boss}>>>王，如果您挂在<<<{boss}>>>王上，请<<<不要>>>结算并重新发送挂树指令！***
-您可以通过发送【挂树+数字】来指定提醒时间'''
+            ***当前进度是<<<{boss}>>>王，如果您挂在<<<{boss}>>>王上，请<<<不要>>>结算并重新发送挂树指令！***
+            您可以通过发送【挂树+数字】来指定提醒时间'''
             await nonebot.get_bot().send_group_msg(group_id=group_id, message=off_tree_msg)
 
         # 通知预约
@@ -320,14 +349,7 @@ async def get_boss_status(bot, ev):
         boss_num = get_boss_number(boss_info['name'])
         boss_hp = boss_info['current_life']
         boss_max_hp = boss_info['total_life']
-        await update_boss(boss_num, boss_info['lap_num'])
-        status_str = f'''{clan_info['name']} 排名{clan_info['last_ranking']}
-当前进度：
-{stage_char}面{stage_num}阶段 {boss_info['lap_num']}周目{boss_num}王 {boss_info['name']}
-HP: {number_formatter(boss_hp)}/{number_formatter(boss_max_hp)} {boss_hp/boss_max_hp:.1%}
-*查询结果存在延迟 请以游戏内为准'''
-
-        await bot.send(ev, status_str)
+        await update_boss(boss_num, boss_info['lap_num'], True, data)
 
 
 @sv.on_fullmatch(('sl', 'SL', "Sl"))
@@ -433,6 +455,7 @@ async def climb_tree(bot, ev):
     sv.logger.info(f"{uid}上树")
     await bot.send(ev, reply, at_sender=True)
 
+
 @sv.on_fullmatch('下树')
 async def off_tree(bot, ev):
     uid = ev.user_id
@@ -453,6 +476,7 @@ async def send_tree_notification(gid, uid, time):
         message=f"[CQ:at,qq={uid}]\n距离您报告上树已经过去了{time}分钟，请立刻使用SL或结算！"
     )
     sv.logger.info(f"提醒{uid}下树")
+
 
 @sv.on_fullmatch('查树')
 async def check_tree(bot: HoshinoBot, ev):
@@ -484,6 +508,7 @@ async def refs(bot, ev):
 分刀器
 >>> https://www.aikurumi.cn/'''
     await bot.send(ev, msg)
+
 
 @sv.on_rex(r'手动记录(\d\d\d\d-\d\d-\d\d)')
 async def manual_record(bot, ev):
@@ -539,6 +564,7 @@ async def register(bot, ev):
     else:
         await bot.send(ev, '注册失败')
 
+
 @sv.on_fullmatch('查看注册信息')
 async def get_register_info(bot, ev):
     uid = None
@@ -588,6 +614,7 @@ async def update_register(bot, ev):
         await bot.send(ev, '更新成功')
     else:
         await bot.send(ev, '更新失败')
+
 
 @sv.on_prefix('删除成员')
 async def delete_member(bot, ev):

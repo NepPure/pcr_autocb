@@ -29,13 +29,14 @@ run_time = datetime.datetime.now() + datetime.timedelta(seconds=30)
 
 log_flag = True
 
+
 @sv.scheduled_job('date', run_date=run_time)
 async def gettime_on_start():
     global start_date, end_date
     start_date, end_date = await get_start_end_date()
     bot = nonebot.get_bot()
-    sv.logger.log(AUTO_LOG_LEVEL, f"获取工会战期间成功：{start_date}:{end_date}@gettime_on_start")
-    
+    sv.logger.log(AUTO_LOG_LEVEL,
+                  f"获取工会战期间成功：{start_date}:{end_date}@gettime_on_start")
 
 
 # 每天获取一次 start_date 和 end_date
@@ -43,9 +44,12 @@ async def gettime_on_start():
 async def update_start_end_time():
     global start_date, end_date
     start_date, end_date = await get_start_end_date()
-    sv.logger.log(AUTO_LOG_LEVEL, f"获取工会战期间成功：{start_date}:{end_date}@update_start_end_time")
+    sv.logger.log(AUTO_LOG_LEVEL,
+                  f"获取工会战期间成功：{start_date}:{end_date}@update_start_end_time")
 
 # 手动获取时间
+
+
 @sv.on_fullmatch('gettime')
 async def gettime(bot, ev):
     global start_date, end_date
@@ -55,13 +59,13 @@ async def gettime(bot, ev):
         return 1
     else:
         return 0
-    
+
 
 # 手动初始化
 @sv.on_fullmatch('init', only_to_me=True)
 async def init(bot, ev):
     if not priv.check_priv(ev, priv.ADMIN):
-        return 
+        return
     ret = await gettime(bot, ev)
     if ret != 1:
         await bot.send(ev, '未获取到开始结束时间！')
@@ -73,21 +77,25 @@ async def init(bot, ev):
     else:
         await bot.send(ev, "预约表重置失败")
 
-@sv.scheduled_job('interval', minutes = 2)
+
+@sv.scheduled_job('interval', minutes=2)
 async def bossupdater():
-    now_date = datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d')
+    now_date = datetime.datetime.now(
+        pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d')
     if not start_date or not end_date or now_date < start_date or now_date > end_date:
-        pass # 不在会战期间
-    
+        pass  # 不在会战期间
+
     else:
         await update()
 
-@sv.scheduled_job('cron', hour = 4, minute=58)
-async def get_daily_report(force = False):
-    now_date = datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d')
+
+@sv.scheduled_job('cron', hour=4, minute=58)
+async def get_daily_report(force=False):
+    now_date = datetime.datetime.now(
+        pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d')
     if not force and (not start_date or not end_date or now_date < start_date or now_date > end_date):
-        pass # 不在会战期间
-    
+        pass  # 不在会战期间
+
     else:
         data = None
         member_data = None
@@ -103,7 +111,6 @@ async def get_daily_report(force = False):
             member_data = await get_today_data()
             fail_count += 1
 
-
         if not data or len(data) == 0 or not member_data or len(member_data) == 0:
             sv.logger.error('API访问失败@get_daily_report')
         elif 'data' not in data or len(data['data']) == 0 or 'data' not in member_data:
@@ -114,7 +121,8 @@ async def get_daily_report(force = False):
                 clan_info = data['clan_info']
                 now = datetime.datetime.now(pytz.timezone('Asia/Shanghai'))
                 month = int(now.strftime('%m'))
-                date = now.replace(hour=4, minute=59, second=59, microsecond=0, tzinfo=None)
+                date = now.replace(hour=4, minute=59, second=59,
+                                   microsecond=0, tzinfo=None)
                 rank = clan_info['last_ranking']
 
                 member_data = member_data['data']
@@ -125,21 +133,24 @@ async def get_daily_report(force = False):
                     recordCount += member['number']
                     totalScore += member['score']
                     totalDamage += member['damage']
-                
+
                 db = DailyDao()
 
-                db.add_day_report(month, date, rank, recordCount, totalScore, totalDamage)
+                db.add_day_report(month, date, rank,
+                                  recordCount, totalScore, totalDamage)
                 sv.logger.log(AUTO_LOG_LEVEL, f'{date}日报已记录@get_daily_report')
             except Exception as e:
                 bot = nonebot.get_bot()
                 sv.logger.error("自动保存日报失败")
 
-@sv.scheduled_job('cron', hour = 4, minute = 57)
-async def auto_record(force = False):
-    now_date = datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d')
+
+@sv.scheduled_job('cron', hour=4, minute=57)
+async def auto_record(force=False):
+    now_date = datetime.datetime.now(
+        pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d')
     if not force and (not start_date or not end_date or now_date < start_date or now_date > end_date):
-        pass # 不在会战期间
-    
+        pass  # 不在会战期间
+
     else:
         data = None
         fail_count = 0
@@ -154,21 +165,25 @@ async def auto_record(force = False):
             sv.logger.error('API数据异常@auto_record')
         else:
             data = data['data']
-            db = RecordDao(start_date.replace('-', ''), end_date.replace('-',''))
+            db = RecordDao(start_date.replace('-', ''),
+                           end_date.replace('-', ''))
             try:
                 db.add_record(data)
-                sv.logger.log(AUTO_LOG_LEVEL, f'{now_date} 前一天的出刀已记录@auto_record()')
+                sv.logger.log(AUTO_LOG_LEVEL,
+                              f'{now_date} 前一天的出刀已记录@auto_record()')
             except Exception as e:
                 bot = nonebot.get_bot()
                 sv.logger.error('自动保存出刀记录失败')
 
 
-@sv.scheduled_job('cron', hour = 0, minute = 10)
+@sv.scheduled_job('cron', hour=0, minute=10)
 async def lat_day_record():
-    now_date = (datetime.datetime.now(pytz.timezone('Asia/Shanghai')) - datetime.timedelta(minutes=20)).strftime('%Y-%m-%d')
+    now_date = (datetime.datetime.now(pytz.timezone('Asia/Shanghai')
+                                      ) - datetime.timedelta(minutes=20)).strftime('%Y-%m-%d')
     if now_date == end_date:
-        await auto_record(force = True)
-        await get_daily_report(force = True)
+        await auto_record(force=True)
+        await get_daily_report(force=True)
+
 
 async def update():
     global log_flag
@@ -182,7 +197,7 @@ async def update():
         sv.logger.error('API访问失败@update')
     elif 'data' not in data or len(data['data']) == 0:
         sv.logger.error('API数据异常@update')
-    
+
     else:
 
         data = data['data']
@@ -191,16 +206,17 @@ async def update():
         boss_info = data['boss_info']
         boss = get_boss_number(boss_info['name'])
         lap = boss_info['lap_num']
-        await update_boss(boss, lap, send_msg=True)
+        await update_boss(boss, lap, True, data)
 
 
 # @sv.scheduled_job('cron', hour='0', minute='5')
 async def cuidao():
     start_date, end_date = await get_start_end_date()
-    now_date = datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H%M')
+    now_date = datetime.datetime.now(pytz.timezone(
+        'Asia/Shanghai')).strftime('%Y-%m-%d %H%M')
     if now_date < (start_date + ' 05:00') or now_date > (end_date + ' 23:59'):
-        pass # 不在会战期间
-    
+        pass  # 不在会战期间
+
     else:
         sv.logger.info('开始催刀')
         data = await get_today_data()
@@ -209,11 +225,12 @@ async def cuidao():
         elif 'data' not in data or len(data['data']) == 0:
             sv.logger.error('API数据异常')
 
-
         else:
             data = data['data']
-            stat_str = [member['name'] for member in data if member['number'] < 3]
-            msg = f"截至{now_date}CST，还有以下成员没有出满3刀，请记得出刀：\n" + "\n".join(stat_str) + "\n*查询结果可能存在延迟 请以游戏内为准"
+            stat_str = [member['name']
+                        for member in data if member['number'] < 3]
+            msg = f"截至{now_date}CST，还有以下成员没有出满3刀，请记得出刀：\n" + \
+                "\n".join(stat_str) + "\n*查询结果可能存在延迟 请以游戏内为准"
             bot = nonebot.get_bot()
             await bot.send_group_msg(group_id=group_id, message=msg)
 
@@ -223,4 +240,3 @@ async def set_log_flag(bot, ev):
     global log_flag
     log_flag = True
     await bot.send(ev, 'OK')
-
